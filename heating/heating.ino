@@ -46,7 +46,8 @@ const char TEMP[] PROGMEM = "TEMP";
 const char ON[] PROGMEM = "ON";
 const char OFF[] PROGMEM = "OFF";
 
-void setup() {
+void setup()
+{
   lcd.begin(2, 20);
   pinMode(relayPin, OUTPUT);
   pinMode(aPin, INPUT);  
@@ -72,30 +73,38 @@ void setup() {
   wifi.endSendWithNewline(true); // Will end all transmissions with a newline and carrage return ie println.. default is true
 
   wifi_started = wifi.begin();
-  if (wifi_started) {
+  if (wifi_started)
+  {
     Serial1.println("AT+CWLAP");
     delay(2000);
     wifi.connectToAP(SSID, PASSWORD);
     wifi.startLocalServer(SERVER_PORT);
-  } else {
+  }
+  else
+  {
     swSerial.println("wifi not connected");
   }
 }
 
-void loop() {
+void loop()
+{
   measuredTemp = readTemp();
-  if (digitalRead(buttonPin) == LOW) {
+  if (digitalRead(buttonPin) == LOW)
+  {
     // something happened so turn the backlight on
     backlight(HIGH);
     is_off = ! is_off;
     updateDisplay();
     delay(500); // debounce
   }
+
   int change = getEncoderTurn();
   setTemp = setTemp + change * 0.5;
-  if (count == 1000) {
+  if (count == 1000)
+  {
     // turn the backlight off after a few seconds
-    if (count2 == 100) {
+    if (count2 == 100)
+    {
       backlight(LOW);
     }
     count2++;
@@ -112,29 +121,33 @@ void loop() {
     wifi.checkConnections(&connections);
 
   // check for messages if there is a connection
-  for (int i = 0; i < MAX_CONNECTIONS; i++) {
-    if (connections[i].connected) {
+  for (int i = 0; i < MAX_CONNECTIONS; i++)
+  {
+    if (connections[i].connected)
+    {
       // See if there is a message
       WifiMessage msg = wifi.getIncomingMessage();
       // Check message is there
-      if (msg.hasData) {
-        // process the command
+      if (msg.hasData)
+      {
         processCommand(msg);
       }
     }
   }
-
 }
 
-void backlight(boolean state) {
+void backlight(boolean state)
+{
   // set the backlight and reset count2
   digitalWrite(lightPin, state);
   count2 = 0;
 }
 
-int getEncoderTurn() {
+int getEncoderTurn()
+{
   // if off then don't change
-  if (is_off) {
+  if (is_off)
+  {
     return 0; 
   }
   // return -1, 0, or +1
@@ -143,9 +156,11 @@ int getEncoderTurn() {
   int result = 0;
   int newA = digitalRead(aPin);
   int newB = digitalRead(bPin);
-  if (newA != oldA || newB != oldB) {
+  if (newA != oldA || newB != oldB)
+  {
     // something has changed
-    if (oldA == LOW && newA == HIGH) {
+    if (oldA == LOW && newA == HIGH)
+    {
       result = -(oldB * 2 - 1);
       // turn the back light on
       backlight(HIGH);
@@ -156,38 +171,45 @@ int getEncoderTurn() {
   return result;
 } 
 
-float readTemp() {
+float readTemp()
+{
   long a = analogRead(analogPin);
   float temp = beta / (log(((1025.0 * resistance / a) - 33.0) / 33.0) + (beta / 298.0)) - 273.0;
   return temp;
 }
 
-void updateOutputs() {
-  if (!is_off &&  measuredTemp < setTemp - hysteresis) {
+void updateOutputs()
+{
+  if (!is_off &&  measuredTemp < setTemp - hysteresis)
+  {
     //digitalWrite(ledPin, HIGH);
     digitalWrite(relayPin, HIGH);
     heatingOn = true;
   } 
-  else if (is_off || measuredTemp > setTemp + hysteresis) {
+  else if (is_off || measuredTemp > setTemp + hysteresis)
+  {
     //digitalWrite(ledPin, LOW);
     digitalWrite(relayPin, LOW);
     heatingOn = false;
   }
 }
 
-void updateDisplay() {
+void updateDisplay()
+{
   lcd.setCursor(0,0);
   lcd.print("Actual: ");
   lcd.print(adjustUnits(measuredTemp));
   lcd.print(" o");
   lcd.print(mode);
   lcd.print(" ");
-  
+
   lcd.setCursor(0,1);
-  if (is_off) {
+  if (is_off)
+  {
     lcd.print("****HEAT OFF****");
   }
-  else {
+  else
+  {
     lcd.print("Set:    ");
     lcd.print(adjustUnits(setTemp));
     lcd.print(" o");
@@ -196,11 +218,14 @@ void updateDisplay() {
   }
 }
 
-float adjustUnits(float temp) {
-  if (mode == 'C') {
+float adjustUnits(float temp)
+{
+  if (mode == 'C')
+  {
     return temp;
   }
-  else {
+  else
+  {
     return (temp * 9) / 5 + 32;
   }
 }
@@ -214,7 +239,7 @@ void processCommand(WifiMessage msg)
 
   // Get command and setting
   sscanf(msg.message,"%15s %d",str,&set);
-  
+
   //Get temperature
   if (!strcmp_P(str,TEMP))
   {
@@ -237,7 +262,7 @@ void processCommand(WifiMessage msg)
   else if (!strcmp_P(str,RST)) 
   {
     wifi.send(msg.channel,"SYSTEM RESET...");
-    // soft reset by reseting PC
+    // soft reset by resetting PC
     asm volatile ("  jmp 0");
   }
   // Unknown command
@@ -254,7 +279,8 @@ void ftoa(char fstr[80], float num)
   int digit;
   float tolerance = .0001f;
 
-  while (num > 0 + tolerance) {
+  while (num > 0 + tolerance)
+  {
     float weight = pow(10.0f, m);
     digit = floor(num / weight);
     num -= (digit*weight);
@@ -265,4 +291,3 @@ void ftoa(char fstr[80], float num)
   }
   *(fstr) = '\0';
 }
-
