@@ -1,9 +1,10 @@
-#include <LiquidCrystal.h>
+/#include <LiquidCrystal.h>
 #include <ESP8266wifi.h>
 #include <SoftwareSerial.h>
 
-#define sw_serial_rx_pin 21 //  Connect this pin to TX on the esp8266
-#define sw_serial_tx_pin 20 //  Connect this pin to RX on the esp8266
+#define sw_serial_rx_pin 21 //  Connect this pin to tx on serial debugger
+#define sw_serial_tx_pin 20 //  Connect this pin to rx on serial debugger
+
 #define esp8266_reset_pin 10 // Connect this pin to CH_PD on the esp8266, not reset. (let reset be unconnected)
 
 #define SERVER_PORT "23"
@@ -12,7 +13,6 @@
 
 SoftwareSerial swSerial(sw_serial_rx_pin, sw_serial_tx_pin);
 ESP8266wifi wifi(Serial1, Serial1, esp8266_reset_pin, swSerial);
-//ESP8266wifi wifi(Serial1, Serial1, esp8266_reset_pin);
 
 const int beta = 4090; // from thermistor datasheet
 const int resistance = 33;
@@ -61,14 +61,12 @@ void setup()
   digitalWrite(bPin, HIGH);
   lcd.clear();
 
-  // start debug serial
   swSerial.begin(9600);
   // start HW serial for ESP8266 (change baud depending on firmware)
   Serial1.begin(9600);
   while (!Serial1)
     ;
 
-  //swSerial.println("Starting wifi");
   wifi.setTransportToTCP();// this is also default
   wifi.endSendWithNewline(true); // Will end all transmissions with a newline and carrage return ie println.. default is true
 
@@ -76,7 +74,7 @@ void setup()
   if (wifi_started)
   {
     Serial1.println("AT+CWLAP");
-    delay(2000);
+    delay(2000); // Small delay to allow boot up before trying to connect to wifi
     wifi.connectToAP(SSID, PASSWORD);
     wifi.startLocalServer(SERVER_PORT);
   }
@@ -182,13 +180,11 @@ void updateOutputs()
 {
   if (!is_off &&  measuredTemp < setTemp - hysteresis)
   {
-    //digitalWrite(ledPin, HIGH);
     digitalWrite(relayPin, HIGH);
     heatingOn = true;
   } 
   else if (is_off || measuredTemp > setTemp + hysteresis)
   {
-    //digitalWrite(ledPin, LOW);
     digitalWrite(relayPin, LOW);
     heatingOn = false;
   }
@@ -254,9 +250,9 @@ void processCommand(WifiMessage msg)
   }
   else if (!strcmp_P(str, OFF))
   {
-    wifi.send(msg.channel, "Thermostat OFF");
-    backlight(HIGH);
     is_off = true;
+    backlight(HIGH);
+    wifi.send(msg.channel, "Thermostat OFF");
   }
   // Reset system by temp enable watchdog
   else if (!strcmp_P(str,RST)) 
